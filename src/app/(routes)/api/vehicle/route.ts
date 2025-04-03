@@ -6,7 +6,10 @@ export async function GET() {
     try {
         // Lấy danh sách phương tiện kèm theo thông tin vận chuyển
         const vehicles = await prisma.vehicle.findMany({
-            include: {
+            select: {
+                id: true,
+                licensePlate: true,
+                status: true,
                 transports: {
                     select: {
                         driver: true,
