@@ -4,11 +4,10 @@ const prisma = new PrismaClient();
 
 export async function GET() {
     try {
-        // Lấy danh sách nhân viên (không bao gồm ADMIN) từ cơ sở dữ liệu
         const users = await prisma.user.findMany({
             where: {
                 role: {
-                    not: 'ADMIN', // Lọc bỏ role là ADMIN
+                    not: 'ADMIN',
                 },
             },
             select: {
@@ -20,14 +19,27 @@ export async function GET() {
                 signature: true,
                 station: {
                     select: {
-                        name: true, // Chỉ lấy tên station (có thể mở rộng để lấy các trường khác)
+                        name: true,
                     },
                 },
             },
         });
 
-        // Xử lý dữ liệu và trả về
-        const allUsers = users.map((user) => {
+        if (!users) {
+            return new Response(
+                JSON.stringify({
+                    message: 'No users found',
+                }),
+                {
+                    status: 404,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                },
+            );
+        }
+
+        const allUsers = users?.map((user) => {
             return {
                 id: user.id,
                 name: user.name,
