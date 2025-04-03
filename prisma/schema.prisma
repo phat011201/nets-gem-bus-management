@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Station {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  address         String
+  stamp           String // Dấu của chi nhánh
+  users           User[]
+  routesDeparture Route[] @relation("DepartureStation")
+  routesArrival   Route[] @relation("ArrivalStation")
+}
+
+model User {
+  id                     String      @id @default(uuid())
+  name                   String?
+  username               String      @unique
+  password               String
+  avatar                 String?
+  role                   Role?
+  station                Station?    @relation(fields: [stationId], references: [id])
+  stationId              String?
+  signature              String? // Chữ ký của nhân viên điều hành
+  transportsDriver       Transport[] @relation("Driver")
+  transportsOperator     Transport[] @relation("Operator")
+  transportsTicketSeller Transport[] @relation("TicketSeller")
+
+  Route Route[]
+}
+
+model Vehicle {
+  id           String        @id @default(uuid())
+  licensePlate String        @unique
+  status       VehicleStatus
+  transports   Transport[]
+}
+
+model Transport {
+  id             String          @id @default(uuid())
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id])
+  vehicleId      String
+  driver         User            @relation("Driver", fields: [driverId], references: [id])
+  driverId       String
+  operator       User?            @relation("Operator", fields: [operatorId], references: [id])
+  operatorId     String?
+  ticketSeller   User            @relation("TicketSeller", fields: [ticketSellerId], references: [id])
+  ticketSellerId String
+  route          Route?          @relation(fields: [routeId], references: [id]) // Route không bắt buộc
+  routeId        String?         @unique // Có thể NULL khi tạo Transport
+  currentStation String
+  nextStation    String
+  departureTime  DateTime
+  arrivalTime    DateTime?
+  status         TransportStatus
+}
+
+model Route {
+  id                 String    @id @default(uuid())
+  departureStation   Station   @relation("DepartureStation", fields: [departureStationId], references: [id])
+  departureStationId String
+  arrivalStation     Station   @relation("ArrivalStation", fields: [arrivalStationId], references: [id])
+  arrivalStationId   String
+  departureTime      DateTime
+  arrivalTime        DateTime?
+  approvedBy         User      @relation(fields: [approvedById], references: [id])
+  approvedById       String
+  departureStamp     String?
+  arrivalStamp       String?
+  Transport          Transport? @relation // Liên kết với Transport sau khi tạo Route
+  transportId        String? @unique // Có thể NULL ban đầu
+}
+
+enum Role {
+  ADMIN
+  DRIVER
+  OPERATOR
+  TICKET_SELLER
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TransportStatus {
+  PENDING // Đang chờ
+  IN_PROGRESS // Đang chạy
+  COMPLETED // Hoàn thành
+}
