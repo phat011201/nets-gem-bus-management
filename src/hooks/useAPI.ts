@@ -20,8 +20,7 @@ export const useAPI = <Req, Res>() => {
           data,
         });
 
-        console.log(res.data);
-        
+        console.log(res.data);        
 
         setResponse({
           ...res.data,

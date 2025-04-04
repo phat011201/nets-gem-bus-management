@@ -1,7 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Image from 'next/image';
 import {
   Table,
   TableBody,
@@ -96,6 +96,19 @@ export default function BusStationsTable() {
     }
   };
 
+  const handleFileUpload = (
+      e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          setFormData((prev) => ({ ...prev, stamp: reader.result as string }));
+        };
+      }
+    };
+
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -148,8 +161,8 @@ export default function BusStationsTable() {
                       {station.address}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <Image
-                        src={`/images/stamp/${station.stamp}`}
+                      <img
+                        src={station.stamp}
                         alt={`stamp-${station.name}`}
                         width={50}
                         height={50}
@@ -217,13 +230,22 @@ export default function BusStationsTable() {
                   </div>
                   <div className="col-span-2">
                     <Label>Dấu mộc</Label>
-                    <Input
-                      onChange={handleChange}
-                      type="text"
+                    <input
+                      type="file"
+                      accept='image/*'
+                      onChange={handleFileUpload}
                       placeholder={`Dấu Mộc`}
-                      defaultValue={formData.stamp}
-                      name={`stamp`}
+                      className={`dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
                     />
+                    {
+                      formData.stamp && (
+                        <img
+                          src={formData.stamp}
+                          alt={`stamp-${formData.name}`}
+                          className="h-20 w-40 rounded object-contain"
+                        />
+                      )
+                    }
                   </div>
                 </div>
               </div>

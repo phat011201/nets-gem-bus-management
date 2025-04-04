@@ -12,18 +12,20 @@ import {
 } from '../ui/table';
 
 import Button from '../ui/button/Button';
-import { TRANSPORT, USER } from '@/data/data';
+import { ITransport, TRANSPORT, USER } from '@/data/data';
 import { useAPI } from '@/hooks/useAPI';
 import Badge from '../ui/badge/Badge';
 import { Modal } from '../ui/modal';
 import Label from '../form/Label';
 import Input from '../form/input/InputField';
 import { useModal } from '@/hooks/useModal';
+import { useRouter } from 'next/navigation';
 
 interface TransportTableProps {
   vehicles?: any[];
   drivers?: any[];
   ticketSellers?: any[];
+  operators?: any[];
   currentStation?: any[];
   nextStation?: any[];
 }
@@ -32,30 +34,31 @@ export default function TransportsTable({
   vehicles,
   drivers,
   ticketSellers,
+  operators,
   currentStation,
   nextStation,
 }: TransportTableProps) {
   const [transportData, setTransportData] = useState<TRANSPORT[]>([]);
-  const { response, fetchData } = useAPI();
+  const { response, fetchData } = useAPI<unknown, TRANSPORT[]>();
   const { fetchData: deleteFetchData } = useAPI();
   const [userLocal, setUserLocal] = useState<USER>();
 
   useEffect(() => {
-    const fetchStationData = async () => {
+    const fetchTransportData = async () => {
       await fetchData('/api/transport', 'GET');
     };
-    fetchStationData();
+    fetchTransportData();
   }, []);
 
   useEffect(() => {
     if (response) {
-      setTransportData(response?.data as TRANSPORT[]);
+      setTransportData(response?.data);
     }
   }, [response]);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
-    if(user){
+    if (user) {
       setUserLocal(JSON.parse(user));
     }
   }, []);
@@ -88,9 +91,11 @@ export default function TransportsTable({
     vehicleId: '',
     driverId: '',
     ticketSellerId: '',
+    operatorId: '',
     currentStation: '',
     nextStation: '',
     departureTime: '',
+    arrivalTime: '',
     status: '',
   });
   const { fetchData: updateFetchData } = useAPI();
@@ -100,16 +105,27 @@ export default function TransportsTable({
       formData.vehicleId &&
       formData.driverId &&
       formData.ticketSellerId &&
+      formData.operatorId &&
       formData.currentStation &&
       formData.nextStation &&
       formData.departureTime &&
+      formData.arrivalTime &&
       formData.status
     ) {
       try {
-        await updateFetchData(`/api/transport/${formData.id}`, 'PUT', formData);
+        const res = await updateFetchData(
+          `/api/transport/${formData.id}`,
+          'PUT',
+          formData,
+        );
+
+        if (!res || res.error) {
+          console.error('Lỗi từ API:', res.error || 'Không có phản hồi');
+          alert('Cập nhật thất bại, kiểm tra console để biết thêm chi tiết.');
+        }
       } catch (err) {
         console.log(err);
-        
+
         alert('Error creating transport');
       }
     } else {
@@ -118,44 +134,32 @@ export default function TransportsTable({
     closeModal();
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  interface Transport {
-    id: string;
-    vehicle: {
-      id: string;
-      licensePlate: string;
-    };
-    driver: {
-      id: string;
-      name: string;
-    };
-    ticketSeller: {
-      id: string;
-      name: string;
-    };
-    currentStation: string;
-    nextStation: string;
-    departureTime: string;
-    status: string;
-  }
-
-  const handleOpenModal = (transport: Transport) => {
+  const handleOpenModal = (transport: ITransport) => {
     setFormData({
       id: transport?.id,
       vehicleId: transport?.vehicle.id,
       driverId: transport?.driver.id,
       ticketSellerId: transport?.ticketSeller.id,
+      operatorId: transport?.operator?.id,
       currentStation: transport?.currentStation,
       nextStation: transport?.nextStation,
       departureTime: transport?.departureTime,
+      arrivalTime: transport?.arrivalTime,
       status: transport?.status,
     });
-    console.log('formData', formData);
 
     openModal();
+  };
+  const router = useRouter();
+
+  const handleTransport = () => {
+    router.push('/');
   };
   return (
     <div>
@@ -184,11 +188,24 @@ export default function TransportsTable({
                   >
                     Người bán vé
                   </TableCell>
+
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Người điều hành
+                  </TableCell>
                   <TableCell
                     isHeader
                     className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
                     Thời gian khởi hành
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Thời gian kết thúc
                   </TableCell>
                   <TableCell
                     isHeader
@@ -230,7 +247,13 @@ export default function TransportsTable({
                       {transport?.ticketSeller.name}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {transport?.operator?.name}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {convertDateTime(transport?.departureTime)}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {convertDateTime(transport?.arrivalTime)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {transport?.currentStation} - {transport?.nextStation}
@@ -244,27 +267,38 @@ export default function TransportsTable({
                         <Badge color={`success`}>Hoàn thành</Badge>
                       )}
                     </TableCell>
-                    {userLocal?.role === 'ADMIN' ||
-                    userLocal?.role === 'OPERATOR' ? (
-                      <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        <div className="flex items-center justify-center gap-2">
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        {(userLocal?.role === 'ADMIN' ||
+                          userLocal?.role === 'OPERATOR') && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="md"
+                              variant="outline"
+                              onClick={() => handleOpenModal(transport)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="md"
+                              variant="outline"
+                              onClick={() => handleDelete(transport.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                        <div>
                           <Button
                             size="md"
-                            onClick={() => handleOpenModal(transport)}
+                            variant="primary"
+                            onClick={() => handleTransport()}
                           >
-                            Edit
-                          </Button>
-                          <Button
-                            size="md"
-                            onClick={() => handleDelete(transport.id)}
-                          >
-                            Delete
+                            Lệnh vận chuyển
                           </Button>
                         </div>
-                      </TableCell>
-                    ) : (
-                      ''
-                    )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -283,10 +317,62 @@ export default function TransportsTable({
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                  <div className="col-span-2 flex justify-between gap-3">
+                    <div className="w-full">
+                      <Label>Current Station</Label>
+                      <select
+                        name={`currentStation`}
+                        id={`currentStation`}
+                        defaultValue={formData?.currentStation}
+                        onChange={handleChange}
+                        className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                      >
+                        <option value="">Bến đi</option>
+                        {currentStation?.map((station) => (
+                          <option value={station.name} key={station.name}>
+                            {station.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-full">
+                      <Label>Next Station</Label>
+                      <select
+                        name={`nextStation`}
+                        id={`nextStation`}
+                        defaultValue={formData?.nextStation}
+                        onChange={handleChange}
+                        className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                      >
+                        <option value="">Bế đến</option>
+                        {nextStation?.map((station) => (
+                          <option value={station.name} key={station.name}>
+                            {station.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Departure Time</Label>
+                    <Input
+                      type="datetime-local"
+                      name="departureTime"
+                      onChange={handleChange}
+                      defaultValue={formData?.departureTime}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Arrival Time</Label>
+                    <Input
+                      type="datetime-local"
+                      name="arrivalTime"
+                      onChange={handleChange}
+                      defaultValue={formData?.arrivalTime}
+                    />
+                  </div>
                   <div className="col-span-2">
                     <Label>Vehicle</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Vehicle ID"*/}
-                    {/*       name="vehicleId"/>*/}
                     <select
                       name={`vehicleId`}
                       id="vehicleId"
@@ -304,8 +390,6 @@ export default function TransportsTable({
                   </div>
                   <div className="col-span-2">
                     <Label>Driver</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Driver ID"*/}
-                    {/*       name="driverId"/>*/}
                     <select
                       name={`driverId`}
                       id={`driverId`}
@@ -323,8 +407,6 @@ export default function TransportsTable({
                   </div>
                   <div className="col-span-2">
                     <Label>Ticket Seller</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Operator ID"*/}
-                    {/*       name="operatorId"/>*/}
 
                     <select
                       name={`ticketSellerId`}
@@ -342,56 +424,25 @@ export default function TransportsTable({
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <Label>Current Station</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Current Station"*/}
-                    {/*       name="currentStation"/>*/}
+                    <Label>Operator</Label>
+
                     <select
-                      name={`currentStation`}
-                      id={`currentStation`}
-                      defaultValue={formData?.currentStation}
+                      name={`operatorId`}
+                      id={`operatorId`}
+                      defaultValue={formData?.operatorId}
                       onChange={handleChange}
                       className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
                     >
-                      <option value="">Bến xuất phát</option>
-                      {currentStation?.map((station) => (
-                        <option value={station.name} key={station.name}>
-                          {station.name}
+                      <option value="">Người bán vé</option>
+                      {operators?.map((operator) => (
+                        <option value={operator.id} key={operator.id}>
+                          {operator.name}
                         </option>
                       ))}
                     </select>
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Next Station</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Next Station"*/}
-                    {/*       name="nextStation"/>*/}
-                    <select
-                      name={`nextStation`}
-                      id={`nextStation`}
-                      defaultValue={formData?.nextStation}
-                      onChange={handleChange}
-                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
-                    >
-                      <option value="">Bế đậu</option>
-                      {nextStation?.map((station) => (
-                        <option value={station.name} key={station.name}>
-                          {station.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Departure Time</Label>
-                    <Input
-                      onChange={handleChange}
-                      type="datetime-local"
-                      name="departureTime"
-                      defaultValue={convertDateTime(formData?.departureTime)}
-                    />
                   </div>
                   <div className="col-span-2">
                     <Label>Status</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder="Next Station"*/}
-                    {/*       name="nextStation"/>*/}
                     <select
                       name={`status`}
                       id={`status`}

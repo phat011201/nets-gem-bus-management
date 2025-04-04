@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
@@ -41,6 +42,18 @@ export default function BusStationsPage() {
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, stamp: reader.result as string }));
+      };
+    }
+  };
+  
   return (
     <div>
       <PageBreadcrumb pageTitle="Bến xe" />
@@ -86,12 +99,20 @@ export default function BusStationsPage() {
                   </div>
                   <div className="col-span-2">
                     <Label>Dấu mộc</Label>
-                    <Input
-                      onChange={handleChange}
-                      type="text"
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
                       placeholder={`Dấu mộc`}
-                      name={`stamp`}
+                      className='border border-gray-300 rounded-md p-2 dark:text-gray-200'
                     />
+                    {formData.stamp && (
+                      <img
+                        src={formData.stamp}
+                        alt="Stamp"
+                        className="w-40 h-20 rounded object-fill mt-2"
+                      />
+                    )}
                   </div>
                 </div>
               </div>

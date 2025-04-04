@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useSidebar } from "@/context/SidebarContext";
-import AppHeader from "@/layout/AppHeader";
-import AppSidebar from "@/layout/AppSidebar";
-import Backdrop from "@/layout/Backdrop";
-import React, { useEffect } from "react";
+import { useSidebar } from '@/context/SidebarContext';
+import AppHeader from '@/layout/AppHeader';
+import AppSidebar from '@/layout/AppSidebar';
+import Backdrop from '@/layout/Backdrop';
+import React, { useEffect } from 'react';
 
 export default function AdminLayout({
   children,
@@ -13,19 +13,23 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
-  useEffect(()=>{
-    const user = localStorage.getItem("user");
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user) {
-      window.location.href = "/signin";
+      if (user.role === 'DRIVER') {
+        window.location.href = '/transports';
+      } else {
+        window.location.href = '/signin';
+      }
     }
-  }, [])
+  }, []);
 
   // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen
-    ? "ml-0"
+    ? 'ml-0'
     : isExpanded || isHovered
-    ? "lg:ml-[290px]"
-    : "lg:ml-[90px]";
+    ? 'lg:ml-[290px]'
+    : 'lg:ml-[90px]';
 
   return (
     <div className="min-h-screen xl:flex">
@@ -39,7 +43,9 @@ export default function AdminLayout({
         {/* Header */}
         <AppHeader />
         {/* Page Content */}
-        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">{children}</div>
+        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+          {children}
+        </div>
       </div>
     </div>
   );

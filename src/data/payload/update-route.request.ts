@@ -4,7 +4,9 @@ export interface UpdateRoutRequestDTO {
   arrivalStationId: string;
   departureTime: string;
   arrivalTime: string;
-  approvedById: string;
+  departureApprovedById: string;
+  arrivalApprovedById: string;
   departureStamp: string;
   arrivalStamp: string;
+  transportId: string;
 }

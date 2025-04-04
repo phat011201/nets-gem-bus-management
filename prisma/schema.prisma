@@ -33,11 +33,14 @@ model User {
   station                Station?    @relation(fields: [stationId], references: [id])
   stationId              String?
   signature              String? // Chữ ký của nhân viên điều hành
+  driverslicensenumber   String?
+  rank                   String?
   transportsDriver       Transport[] @relation("Driver")
   transportsOperator     Transport[] @relation("Operator")
   transportsTicketSeller Transport[] @relation("TicketSeller")
 
-  Route Route[]
+  departureRoutes Route[] @relation("DepartureApproval")
+  arrivalRoutes   Route[] @relation("ArrivalApproval")
 }
 
 model Vehicle {
@@ -57,13 +60,12 @@ model Transport {
   operatorId     String?
   ticketSeller   User            @relation("TicketSeller", fields: [ticketSellerId], references: [id])
   ticketSellerId String
-  route          Route?          @relation(fields: [routeId], references: [id]) // Route không bắt buộc
-  routeId        String?         @unique // Có thể NULL khi tạo Transport
   currentStation String
   nextStation    String
   departureTime  DateTime
   arrivalTime    DateTime?
   status         TransportStatus
+  routes         Route[]  @relation("TransportRoutes")
 }
 
 model Route {
@@ -74,12 +76,14 @@ model Route {
   arrivalStationId   String
   departureTime      DateTime
   arrivalTime        DateTime?
-  approvedBy         User      @relation(fields: [approvedById], references: [id])
-  approvedById       String
+  departureApprovedBy         User?     @relation("DepartureApproval", fields: [departureApprovedById], references: [id])
+  departureApprovedById       String?
+  arrivalApprovedBy           User?      @relation("ArrivalApproval", fields: [arrivalApprovedById], references: [id])
+  arrivalApprovedById         String?
   departureStamp     String?
   arrivalStamp       String?
-  Transport          Transport? @relation // Liên kết với Transport sau khi tạo Route
-  transportId        String? @unique // Có thể NULL ban đầu
+  transport          Transport  @relation("TransportRoutes", fields: [transportId], references: [id]) // Liên kết với Transport sau khi tạo Route
+  transportId        String
 }
 
 enum Role {

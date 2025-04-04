@@ -14,11 +14,21 @@ export interface RouteResponseDto {
   };
   departureTime: string;
   arrivalTime: string;
-  approvedBy: {
+  departureApprovedBy: {
+    id: string;
+    name: string;
+    role: ROLE;
+  };
+  arrivalApprovedBy: {
     id: string;
     name: string;
     role: ROLE;
   };
   departureStamp: string;
   arrivalStamp: string;
+  transport: {
+    id: string,
+    departureStation: string,
+    arrivalStation: string,
+  };
 }

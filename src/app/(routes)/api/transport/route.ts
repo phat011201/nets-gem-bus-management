@@ -18,6 +18,8 @@ export async function GET() {
                     select: {
                         id: true,
                         name: true,
+                        rank: true,
+                        driverslicensenumber: true,
                     },
                 },
                 ticketSeller: {
@@ -26,9 +28,16 @@ export async function GET() {
                         name: true,
                     },
                 },
+                operator: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
                 currentStation: true,
                 nextStation: true,
                 departureTime: true,
+                arrivalTime: true,
                 status: true,
             },
             orderBy: {
@@ -74,15 +83,17 @@ export async function POST(request: Request) {
             ticketSellerId,
             currentStation,
             nextStation,
-            departureTime
+            departureTime,
+            arrivalTime,
+            operatorId,
         } = body;
 
         // Kiểm tra các trường bắt buộc
-        if (!vehicleId || !driverId || !ticketSellerId || !currentStation || !nextStation || !departureTime) {
+        if (!vehicleId || !driverId || !ticketSellerId || !operatorId || !currentStation || !nextStation || !departureTime || !arrivalTime) {
             return new Response(
                 JSON.stringify({
                     message: 'Missing required fields',
-                    error: 'All fields are required: vehicleId, driverId, ticketSellerId, currentStation, nextStation, departureTime'
+                    error: 'All fields are required: vehicleId, driverId, operatorId, ticketSellerId, currentStation, nextStation, departureTime, arrivalTime',
                 }),
                 {status: 400, headers: {'Content-Type': 'application/json'}}
             );
@@ -90,11 +101,12 @@ export async function POST(request: Request) {
 
         // Kiểm tra và chuyển đổi departureTime thành đối tượng Date hợp lệ
         const parsedDepartureTime = new Date(departureTime);
-        if (isNaN(parsedDepartureTime.getTime())) {
+        const parsedArrivalTime = new Date(arrivalTime);
+        if (isNaN(parsedDepartureTime.getTime()) || isNaN(parsedArrivalTime.getTime())) {
             return new Response(
                 JSON.stringify({
-                    message: 'Invalid departureTime',
-                    error: 'The provided departureTime is not a valid date'
+                    message: 'Invalid departureTime or arrivalTime',
+                    error: 'The provided departureTime or arrivalTime is not a valid date'
                 }),
                 {status: 400, headers: {'Content-Type': 'application/json'}}
             );
@@ -109,6 +121,8 @@ export async function POST(request: Request) {
                 currentStation,
                 nextStation,
                 departureTime: parsedDepartureTime,
+                arrivalTime: parsedArrivalTime,
+                operatorId,
                 status: 'PENDING',
             },
         });

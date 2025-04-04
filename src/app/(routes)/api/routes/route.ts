@@ -25,7 +25,14 @@ export async function GET() {
         },
         departureTime: true,
         arrivalTime: true,
-        approvedBy: {
+        departureApprovedBy: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        arrivalApprovedBy: {
           select: {
             id: true,
             name: true,
@@ -34,6 +41,14 @@ export async function GET() {
         },
         departureStamp: true,
         arrivalStamp: true,
+        transport: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        departureTime: 'asc',
       },
     });
 
@@ -59,7 +74,10 @@ export async function POST(req: Request) {
       departureStationId,
       arrivalStationId,
       departureTime,
-      approvedById,
+      arrivalTime,
+      departureApprovedById,
+      arrivalApprovedById,
+      transportId,
     } = body;
 
     // Kiểm tra Station tồn tại
@@ -77,13 +95,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Kiểm tra User (người phê duyệt)
-    const approvedBy = await prisma.user.findUnique({
-      where: { id: approvedById },
+    // Kiểm tra User (người phê duyệt đi)
+    const departureApprovedBy = await prisma.user.findUnique({
+      where: { id: departureApprovedById },
     });
-    if (!approvedBy) {
+    if (!departureApprovedBy) {
       return NextResponse.json(
-        { message: 'Người phê duyệt không tồn tại' },
+        { message: 'Người phê duyệt đi không tồn tại' },
+        { status: 400 },
+      );
+    }
+
+    // Kiểm tra User (người phê duyệt đến)
+    const arrivalApprovedBy = await prisma.user.findUnique({
+      where: { id: arrivalApprovedById },
+    });
+    if (!arrivalApprovedBy) {
+      return NextResponse.json(
+        { message: 'Người phê duyệt đến không tồn tại' },
         { status: 400 },
       );
     }
@@ -94,15 +123,21 @@ export async function POST(req: Request) {
         departureStationId,
         arrivalStationId,
         departureTime: new Date(departureTime),
-        approvedById,
+        arrivalTime: arrivalTime ? new Date(arrivalTime) : null,
+        departureApprovedById,
+        arrivalApprovedById,
+        transportId: transportId,
       },
       select: {
         id: true,
         departureStationId: true,
         arrivalStationId: true,
         departureTime: true,
-        approvedById: true,
+        arrivalTime: true,
+        departureApprovedById: true,
+        arrivalApprovedById: true,
         departureStamp: true,
+        transportId: true,
       },
     });
 

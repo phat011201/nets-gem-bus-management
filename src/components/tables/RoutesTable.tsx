@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -10,7 +11,7 @@ import {
 } from '../ui/table';
 
 import Button from '../ui/button/Button';
-import { BUS_STATION, USER } from '@/data/data';
+import { BUS_STATION, ITransport, USER } from '@/data/data';
 import { useAPI } from '@/hooks/useAPI';
 import Badge from '../ui/badge/Badge';
 import { Modal } from '../ui/modal';
@@ -19,15 +20,11 @@ import Input from '../form/input/InputField';
 import { useModal } from '@/hooks/useModal';
 import { RouteResponseDto } from '@/data/payload/routes.response';
 import { UpdateRoutRequestDTO } from '@/data/payload/update-route.request';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 export default function RoutesTable() {
   const [routesData, setRoutesData] = React.useState<RouteResponseDto[]>([]);
 
   const [userLocal, setUserLocal] = useState<USER>();
-
-  const router = useRouter();
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -40,12 +37,14 @@ export default function RoutesTable() {
 
   const [departureStations, setDepartureStations] = useState<BUS_STATION[]>([]);
   const [arrivalStations, setArrivalStations] = useState<BUS_STATION[]>([]);
+  const [transports, setTransports] = useState<ITransport[]>();
 
-  const fetchVehicleData = useCallback(async () => {
+  const fetchRoutesData = useCallback(async () => {
     await fetchData('/api/routes', 'GET');
   }, [fetchData]);
 
-  const { fetchData: fetchStationData} = useAPI<unknown, BUS_STATION[]>();
+  const { fetchData: fetchStationData } = useAPI<unknown, BUS_STATION[]>();
+  const { fetchData: fetchTransportData } = useAPI<unknown, ITransport[]>();
 
   const fetchDataForDropdowns = useCallback(async () => {
     try {
@@ -54,21 +53,22 @@ export default function RoutesTable() {
         setDepartureStations(station?.data);
         setArrivalStations(station?.data);
       }
+
+      const transport = await fetchTransportData('/api/transport', 'GET');
+      setTransports(transport?.data);
     } catch (err) {
       console.error('Failed to fetch dropdown data', err);
     }
-  }, [fetchStationData]);
+  }, [fetchStationData, fetchTransportData]);
 
   useEffect(() => {
-    fetchVehicleData();
+    fetchRoutesData();
     fetchDataForDropdowns();
-  }, [fetchVehicleData, fetchDataForDropdowns]);
+  }, [fetchRoutesData, fetchDataForDropdowns]);
 
   useEffect(() => {
     if (response) {
       setRoutesData(response.data);
-      console.log(response.data);
-      
     }
   }, [response]);
 
@@ -84,16 +84,23 @@ export default function RoutesTable() {
     arrivalStationId: '',
     departureTime: '',
     arrivalTime: '',
-    approvedById: '',
+    departureApprovedById: '',
+    arrivalApprovedById: '',
     departureStamp: '',
     arrivalStamp: '',
+    transportId: '',
   });
-  const { fetchData: updatedFetchData } = useAPI();
+  const { fetchData: updatedFetchData } = useAPI<
+    unknown,
+    UpdateRoutRequestDTO
+  >();
   const handleSave = async () => {
     if (
       formData.departureStationId &&
       formData.arrivalStationId &&
-      formData.approvedById
+      formData.departureApprovedById &&
+      formData.arrivalApprovedById &&
+      formData.transportId
     ) {
       try {
         await updatedFetchData(`/api/routes/${formData.id}`, 'PUT', {
@@ -101,8 +108,11 @@ export default function RoutesTable() {
           arrivalStationId: formData.arrivalStationId,
           departureTime: new Date(formData.departureTime),
           arrivalTime: new Date(formData.arrivalTime),
-          approvedById: formData.approvedById,
+          departureApprovedById: formData.departureApprovedById,
+          arrivalApprovedById: formData.arrivalApprovedById,
+          transportId: formData.transportId,
         });
+        await fetchRoutesData();
       } catch (err) {
         console.log(err);
         alert('Error creating routes');
@@ -126,9 +136,11 @@ export default function RoutesTable() {
       arrivalStationId: route.arrivalStationId,
       departureTime: route.departureTime,
       arrivalTime: route.arrivalTime,
-      approvedById: route.approvedById,
+      departureApprovedById: route.departureApprovedById,
+      arrivalApprovedById: route.arrivalApprovedById,
       departureStamp: route.departureStamp,
       arrivalStamp: route.arrivalStamp,
+      transportId: route.transportId,
     });
     openModal();
   };
@@ -136,9 +148,6 @@ export default function RoutesTable() {
   const convertDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     };
@@ -157,7 +166,7 @@ export default function RoutesTable() {
           departureStationId,
         },
       );
-      router.refresh();
+      fetchRoutesData();
     } catch (err) {
       console.error(err);
       alert('Error checking in');
@@ -172,11 +181,23 @@ export default function RoutesTable() {
       await updatedFetchData(`/api/routes/checkin/arrival/${routeId}`, 'PUT', {
         arrivalStationId,
       });
-      router.refresh();
+      fetchRoutesData();
     } catch (err) {
       console.error(err);
       alert('Error checking in');
     }
+  };
+
+  const convertDateToLocal = (date: string) => {
+    const localDate = new Date(date);
+    return localDate.toLocaleString('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (
@@ -192,7 +213,7 @@ export default function RoutesTable() {
                     isHeader
                     className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
-                    Bến đi
+                    Điểm đầu
                   </TableCell>
                   <TableCell
                     isHeader
@@ -210,7 +231,13 @@ export default function RoutesTable() {
                     isHeader
                     className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
-                    Bến đến
+                    Điều hành xác nhận đi (Mộc)
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Điểm cuối
                   </TableCell>
                   <TableCell
                     isHeader
@@ -223,6 +250,12 @@ export default function RoutesTable() {
                     className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
                     Điều hành xác nhận đến
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Điều hành xác nhận đến (Mộc)
                   </TableCell>
                   {(userLocal?.role === 'ADMIN' ||
                     userLocal?.role === 'OPERATOR') && (
@@ -247,13 +280,16 @@ export default function RoutesTable() {
                       {convertDateTime(route?.departureTime)}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-white text-start text-theme-sm dark:text-white">
+                      {route.departureApprovedBy?.name}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-white text-start text-theme-sm dark:text-white">
                       {route?.departureStamp ? (
-                        <Image
-                          src={`/images/stamp/${route.departureStamp}`}
+                        <img
+                          src={route.departureStamp}
                           alt={'stamp'}
                           width={50}
                           height={50}
-                          className="w-30 h-20 object-fill rounded"
+                          className="w-40 h-20 object-fill rounded"
                         />
                       ) : (
                         <Badge color="error">Chưa xác nhận</Badge>
@@ -266,13 +302,16 @@ export default function RoutesTable() {
                       {convertDateTime(route?.arrivalTime)}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-white text-start text-theme-sm dark:text-white">
+                      {route.arrivalApprovedBy?.name}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-white text-start text-theme-sm dark:text-white">
                       {route?.arrivalStamp ? (
-                        <Image
-                          src={`/images/stamp/${route.arrivalStamp}`}
+                        <img
+                          src={route.arrivalStamp}
                           alt={'stamp'}
                           width={50}
                           height={50}
-                          className="w-30 h-20 object-fill rounded"
+                          className="w-40 h-20 object-fill rounded"
                         />
                       ) : (
                         <Badge color="error">Chưa xác nhận</Badge>
@@ -285,6 +324,7 @@ export default function RoutesTable() {
                           <div className="flex items-center gap-2">
                             <Button
                               size="md"
+                              variant="outline"
                               onClick={() =>
                                 handleOpenModal({
                                   id: route.id,
@@ -292,9 +332,13 @@ export default function RoutesTable() {
                                   arrivalStationId: route.arrivalStation.id,
                                   departureTime: route.departureTime,
                                   arrivalTime: route.arrivalTime,
-                                  approvedById: route.approvedBy.id,
+                                  departureApprovedById:
+                                    route.departureApprovedBy.id,
+                                  arrivalApprovedById:
+                                    route.arrivalApprovedBy.id,
                                   departureStamp: route.departureStamp,
                                   arrivalStamp: route.arrivalStamp,
+                                  transportId: route.transport.id,
                                 })
                               }
                             >
@@ -302,6 +346,7 @@ export default function RoutesTable() {
                             </Button>
                             <Button
                               size="md"
+                              variant="outline"
                               onClick={() => handleDelete(route.id)}
                             >
                               Delete
@@ -352,19 +397,55 @@ export default function RoutesTable() {
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                  <div className="col-span-2 flex justify-between items-center gap-3">
+                    <div className="w-full">
+                      <Label>Departure Stations</Label>
+                      <select
+                        name={`departureStationId`}
+                        id="departureStationId"
+                        onChange={handleChange}
+                        defaultValue={formData.departureStationId}
+                        className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                      >
+                        <option value="">Điểm đầu</option>
+                        {departureStations?.map((value) => (
+                          <option value={value.id} key={value.id}>
+                            {value.name} - {value.address}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-full">
+                      <Label>Arrival Station</Label>
+                      <select
+                        name={`arrivalStationId`}
+                        id="arrivalStationId"
+                        onChange={handleChange}
+                        defaultValue={formData.arrivalStationId}
+                        className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                      >
+                        <option value="">Điểm cuối</option>
+                        {arrivalStations?.map((value) => (
+                          <option value={value.id} key={value.id}>
+                            {value.name} - {value.address}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <div className="col-span-2">
-                    <Label>Departure Stations</Label>
+                    <Label>Transports</Label>
                     <select
-                      name={`departureStationId`}
-                      id="departureStationId"
+                      name={`transportId`}
+                      id="transportId"
                       onChange={handleChange}
-                      defaultValue={formData.departureStationId}
+                      defaultValue={formData.transportId}
                       className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
                     >
-                      <option value="">Bến đi</option>
-                      {departureStations?.map((value) => (
+                      <option value="">Lệnh Vận Chuyển {`(Ngày)`}</option>
+                      {transports?.map((value) => (
                         <option value={value.id} key={value.id}>
-                          {value.name} - {value.address}
+                          {convertDateToLocal(value.departureTime)}
                         </option>
                       ))}
                     </select>
@@ -379,29 +460,13 @@ export default function RoutesTable() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label>Approved By</Label>
-                    <select
-                      name={`arrivalStationId`}
-                      id="arrivalStationId"
-                      onChange={handleChange}
-                      defaultValue={formData.arrivalStationId}
-                      className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
-                    >
-                      <option value="">Bến đến</option>
-                      {arrivalStations?.map((value) => (
-                        <option value={value.id} key={value.id}>
-                          {value.name} - {value.address}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
                     <Label>thời gian đến</Label>
                     <Input
                       onChange={handleChange}
                       type="datetime-local"
                       defaultValue={formData.arrivalTime}
                       name="arrivalTime"
+                      step={600}
                     />
                   </div>
                 </div>

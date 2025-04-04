@@ -3,5 +3,7 @@ export interface CreateRouteDto {
   arrivalStationId: string;
   departureTime: string;
   arrivalTime?: string;
-  approvedById: string;
+  departureApprovedById?: string;
+  arrivalApprovedById?: string;
+  transportId: string;
 }

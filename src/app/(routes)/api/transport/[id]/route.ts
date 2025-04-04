@@ -90,14 +90,36 @@ export async function PUT(req: Request) {
       );
     }
 
+    const transport = await prisma.transport.findUnique({
+      where: {
+        id: id,
+      },
+    });
+
+    if (!transport) {
+      return new Response(
+        JSON.stringify({
+          message: 'Transport not found',
+        }),
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    }
+
     const body = await req.json();
     const {
       vehicleId,
       driverId,
       ticketSellerId,
+      operatorId,
       currentStation,
       nextStation,
       departureTime,
+      arrivalTime,
       status,
     } = body;
 
@@ -105,15 +127,62 @@ export async function PUT(req: Request) {
       !vehicleId ||
       !driverId ||
       !ticketSellerId ||
+      !operatorId ||
       !currentStation ||
       !nextStation ||
       !departureTime ||
+      !arrivalTime ||
       !status
     ) {
       return new Response(
         JSON.stringify({
           message:
-            'Vehicle id, driver id, ticket seller id, current station, next station, departure time and status are required',
+            'Vehicle id, driver id, ticket seller id, operatorId, current station, next station, departure time, arrival time and status are required',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    });
+
+    const driver = await prisma.user.findUnique({
+      where: { id: driverId },
+    });
+
+    const ticketSeller = await prisma.user.findUnique({
+      where: { id: ticketSellerId },
+    });
+
+    const operator = await prisma.user.findUnique({
+      where: { id: operatorId },
+    })
+
+
+    if (!vehicle || !driver || !ticketSeller || !operator) {
+      return new Response(
+        JSON.stringify({
+          message: 'Transport, vehicle, driver, operator or ticket seller not found',
+        }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    const parsedDepartureTime = new Date(departureTime);
+    const parsedArrivalTime = new Date(arrivalTime);
+    if (
+      isNaN(parsedDepartureTime.getTime()) ||
+      isNaN(parsedArrivalTime.getTime())
+    ) {
+      return new Response(
+        JSON.stringify({
+          message: 'Invalid departureTime or arrivalTime',
+          error:
+            'The provided departureTime or arrivalTime is not a valid date',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
@@ -125,9 +194,11 @@ export async function PUT(req: Request) {
         vehicleId,
         driverId,
         ticketSellerId,
+        operatorId,
         currentStation,
         nextStation,
-        departureTime,
+        departureTime: parsedDepartureTime,
+        arrivalTime: parsedArrivalTime,
         status,
       },
     });

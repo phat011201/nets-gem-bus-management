@@ -17,6 +17,8 @@ export async function GET() {
         username: true,
         avatar: true,
         role: true,
+        rank: true,
+        driverslicensenumber: true,
         signature: true,
         station: {
           select: {
@@ -47,6 +49,8 @@ export async function GET() {
         username: string;
         avatar: string | null;
         role: ROLE | null;
+        rank: string | null;
+        driverslicensenumber: string | null;
         signature: string | null;
         station: {
           name: string;
@@ -57,6 +61,8 @@ export async function GET() {
           name: user.name,
           username: user.username,
           avatar: user.avatar,
+          rank: user.rank,
+          driverslicensenumber: user.driverslicensenumber,
           role: user.role,
           station: {
             name: user.station ? user.station.name : null,
@@ -102,7 +108,7 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     // Parse body request để lấy ID và các dữ liệu cần cập nhật
-    const { id, name, username, avatar, role, signature } = await req.json();
+    const { id, name, username, avatar, role, signature, rank, driverslicensenumber} = await req.json();
 
     if (!id) {
       return new Response(
@@ -125,6 +131,8 @@ export async function PUT(req: Request) {
         name,
         username,
         avatar,
+        rank,
+        driverslicensenumber,
         role,
         signature,
       },
@@ -139,6 +147,8 @@ export async function PUT(req: Request) {
           name: updatedUser.name,
           username: updatedUser.username,
           avatar: updatedUser.avatar,
+          rank: updatedUser.rank,
+          driverslicensenumber: updatedUser.driverslicensenumber,
           role: updatedUser.role,
           signature: updatedUser.signature,
         },

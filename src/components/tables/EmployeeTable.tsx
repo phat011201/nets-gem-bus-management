@@ -20,10 +20,20 @@ import { useModal } from '@/hooks/useModal';
 
 export default function EmployeeTable() {
   const { isOpen, openModal, closeModal } = useModal();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    id: string;
+    name: string;
+    avatar: string;
+    rank: string;
+    driverslicensenumber: string;
+    role: string;
+    signature: string;
+  }>({
     id: '',
     name: '',
     avatar: '',
+    rank: '',
+    driverslicensenumber: '',
     role: '',
     signature: '',
   });
@@ -34,13 +44,10 @@ export default function EmployeeTable() {
   const { fetchData: updateEmployee } = useAPI<unknown, USER[]>();
 
   const handleSave = async () => {
-    // Kiểm tra ID
     if (!formData.id) {
       alert('Lỗi: Không tìm thấy ID!');
       return;
     }
-
-    console.log(formData);
 
     try {
       await updateEmployee('/api/employee', 'PUT', formData);
@@ -54,7 +61,9 @@ export default function EmployeeTable() {
   const [employeeData, setEmployeeData] = useState<USER[]>([]);
   const [userLocal, setUserLocal] = useState<USER>();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -79,18 +88,34 @@ export default function EmployeeTable() {
     }
   }, [response]);
 
-interface FormData {
+  interface FormData {
     id: string;
     name: string;
     avatar: string;
+    rank: string;
+    driverslicensenumber: string;
     role: string;
     signature: string;
-}
+  }
 
-const handleOpenModal = (user: FormData): void => {
+  const handleOpenModal = (user: FormData): void => {
     setFormData({ ...user });
     openModal();
-};
+  };
+
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'avatar' | 'signature',
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, [field]: reader.result as string }));
+      };
+    }
+  };
 
   return (
     <div>
@@ -118,6 +143,18 @@ const handleOpenModal = (user: FormData): void => {
                     className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                   >
                     Chữ ký
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Số giấy phép lái xe
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Hạng
                   </TableCell>
                   {(userLocal?.role === 'ADMIN' ||
                     userLocal?.role === 'OPERATOR') && (
@@ -159,7 +196,19 @@ const handleOpenModal = (user: FormData): void => {
                       {user.username}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <div className="flex -space-x-2">{user.signature}</div>
+                      <div className="flex -space-x-2">
+                        <img
+                          src={user.signature}
+                          alt="Signature"
+                          className="w-32 h-10 rounded"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {user.driverslicensenumber}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      {user.rank}
                     </TableCell>
                     {(userLocal?.role === 'ADMIN' ||
                       userLocal?.role === 'OPERATOR') && (
@@ -192,12 +241,6 @@ const handleOpenModal = (user: FormData): void => {
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  {/*<div className="col-span-2">*/}
-                  {/*    <Label>ID</Label>*/}
-                  {/*    <Input onChange={handleChange} type="text" placeholder={`id`} defaultValue={id}*/}
-                  {/*           disabled={true}*/}
-                  {/*           name={`id`}/>*/}
-                  {/*</div>*/}
                   <div className="col-span-2">
                     <Label>Tên</Label>
                     <Input
@@ -208,20 +251,48 @@ const handleOpenModal = (user: FormData): void => {
                       name={`name`}
                     />
                   </div>
+                  {formData.role === 'DRIVER' && (
+                    <>
+                      <div className="col-span-2">
+                        <Label>Giấy phép lái xe</Label>
+                        <Input
+                          onChange={handleChange}
+                          type="text"
+                          placeholder={`Giấy phép lái xe`}
+                          defaultValue={formData.driverslicensenumber}
+                          name={`driverslicensenumber`}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Hạng</Label>
+                        <Input
+                          onChange={handleChange}
+                          type="text"
+                          placeholder={`Hạng`}
+                          defaultValue={formData.rank}
+                          name={`rank`}
+                        />
+                      </div>
+                    </>
+                  )}
                   <div className="col-span-2">
                     <Label>Avatar</Label>
-                    <Input
-                      onChange={handleChange}
-                      type="text"
-                      placeholder={`Avatar`}
-                      defaultValue={formData.avatar}
-                      name={`avatar`}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'avatar')}
+                      className={`dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
                     />
+                    {formData.avatar && (
+                      <img
+                        src={formData.avatar}
+                        alt="Avatar Preview"
+                        className="mt-2 w-20 h-20 rounded-full"
+                      />
+                    )}
                   </div>
                   <div className="col-span-2">
                     <Label>Vai trò</Label>
-                    {/*<Input onChange={handleChange} type="text" placeholder={`Vai trò`}*/}
-                    {/*       name={`role`}/>*/}
                     <select
                       name={`role`}
                       id={`role`}
@@ -235,7 +306,7 @@ const handleOpenModal = (user: FormData): void => {
                       <option value={`DRIVER`}>DRIVER</option>
                     </select>
                   </div>
-                  <div className="col-span-2">
+                  {/* <div className="col-span-2">
                     <Label>Chữ ký</Label>
                     <Input
                       onChange={handleChange}
@@ -244,6 +315,22 @@ const handleOpenModal = (user: FormData): void => {
                       defaultValue={formData.signature}
                       name={`signature`}
                     />
+                  </div> */}
+                  <div className="col-span-2">
+                    <Label>Chữ ký</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'signature')}
+                      className={`dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                    />
+                    {formData.signature && (
+                      <img
+                        src={formData.signature}
+                        alt="Signature Preview"
+                        className="mt-2 w-32 h-10"
+                      />
+                    )}
                   </div>
                 </div>
               </div>

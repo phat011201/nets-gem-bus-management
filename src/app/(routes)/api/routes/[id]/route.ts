@@ -14,14 +14,20 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { departureStationId, arrivalStationId, departureTime, arrivalTime } =
-      body;
+    const {
+      departureStationId,
+      arrivalStationId,
+      departureTime,
+      arrivalTime,
+      transportId,
+    } = body;
 
     if (
       !departureStationId ||
       !arrivalStationId ||
       !departureTime ||
-      !arrivalTime
+      !arrivalTime ||
+      !transportId
     ) {
       return new Response(
         JSON.stringify({ message: 'Thiếu thông tin bắt buộc' }),
@@ -61,6 +67,20 @@ export async function PUT(req: Request) {
       );
     }
 
+    const transport = await prisma.transport.findUnique({
+      where: { id: transportId },
+    });
+
+    if (!transport) {
+      return new Response(
+        JSON.stringify({ message: 'Vận chuyển không tồn tại' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     const updatedRoute = await prisma.route.update({
       where: { id },
       data: {
@@ -68,6 +88,13 @@ export async function PUT(req: Request) {
         arrivalStationId,
         departureTime: departureDate,
         arrivalTime: arrivalDate,
+        transportId,
+      },
+      select: {
+        departureStationId: true,
+        arrivalStationId: true,
+        departureTime: true,
+        transportId: true,
       },
     });
 

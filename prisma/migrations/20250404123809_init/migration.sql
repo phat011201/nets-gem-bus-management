@@ -16,6 +16,8 @@ CREATE TABLE "User" (
     "role" TEXT,
     "stationId" TEXT,
     "signature" TEXT,
+    "driverslicensenumber" TEXT,
+    "rank" TEXT,
     CONSTRAINT "User_stationId_fkey" FOREIGN KEY ("stationId") REFERENCES "Station" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -31,9 +33,8 @@ CREATE TABLE "Transport" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "vehicleId" TEXT NOT NULL,
     "driverId" TEXT NOT NULL,
-    "operatorId" TEXT NOT NULL,
+    "operatorId" TEXT,
     "ticketSellerId" TEXT NOT NULL,
-    "routeId" TEXT,
     "currentStation" TEXT NOT NULL,
     "nextStation" TEXT NOT NULL,
     "departureTime" DATETIME NOT NULL,
@@ -41,9 +42,8 @@ CREATE TABLE "Transport" (
     "status" TEXT NOT NULL,
     CONSTRAINT "Transport_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Transport_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Transport_operatorId_fkey" FOREIGN KEY ("operatorId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Transport_ticketSellerId_fkey" FOREIGN KEY ("ticketSellerId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Transport_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "Route" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "Transport_operatorId_fkey" FOREIGN KEY ("operatorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Transport_ticketSellerId_fkey" FOREIGN KEY ("ticketSellerId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -53,12 +53,16 @@ CREATE TABLE "Route" (
     "arrivalStationId" TEXT NOT NULL,
     "departureTime" DATETIME NOT NULL,
     "arrivalTime" DATETIME,
-    "approvedById" TEXT NOT NULL,
-    "stamp" TEXT NOT NULL,
-    "transportId" TEXT,
+    "departureApprovedById" TEXT,
+    "arrivalApprovedById" TEXT,
+    "departureStamp" TEXT,
+    "arrivalStamp" TEXT,
+    "transportId" TEXT NOT NULL,
     CONSTRAINT "Route_departureStationId_fkey" FOREIGN KEY ("departureStationId") REFERENCES "Station" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Route_arrivalStationId_fkey" FOREIGN KEY ("arrivalStationId") REFERENCES "Station" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Route_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "Route_departureApprovedById_fkey" FOREIGN KEY ("departureApprovedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Route_arrivalApprovedById_fkey" FOREIGN KEY ("arrivalApprovedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Route_transportId_fkey" FOREIGN KEY ("transportId") REFERENCES "Transport" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -69,9 +73,6 @@ CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Vehicle_licensePlate_key" ON "Vehicle"("licensePlate");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Transport_routeId_key" ON "Transport"("routeId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Route_transportId_key" ON "Route"("transportId");
