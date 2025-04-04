@@ -20,8 +20,6 @@ export const useAPI = <Req, Res>() => {
           data,
         });
 
-        console.log(res.data);        
-
         setResponse({
           ...res.data,
           timestamp: new Date(res.data.timestamp),

@@ -18,23 +18,67 @@ export async function GET(req: Request) {
       where: { id },
       select: {
         id: true,
+        vehicle: {
+          select: {
+            id: true,
+            licensePlate: true,
+          },
+        },
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            rank: true,
+            driverslicensenumber: true,
+          },
+        },
+        ticketSeller: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        operator: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        currentStation: true,
+        nextStation: true,
         departureTime: true,
         arrivalTime: true,
-        vehicle: true,
-        driver: true,
-        operator: true,
-        ticketSeller: true,
         routes: {
           select: {
             id: true,
+            departureStation: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            arrivalStation: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             departureTime: true,
             arrivalTime: true,
-            departureStation: true,
-            arrivalStation: true,
-            departureApprovedBy: true,
-            arrivalApprovedBy: true,
             departureStamp: true,
             arrivalStamp: true,
+            departureApprovedBy: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            arrivalApprovedBy: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -47,32 +91,10 @@ export async function GET(req: Request) {
       );
     }
 
-    const responseData = {
-      id: transport.id,
-      departureTime: transport.departureTime,
-      arrivalTime: transport.arrivalTime,
-      transportNumber: transport.id.slice(0, 8),
-      routes: transport.routes,
-      driver: {
-        name: transport.driver?.name,
-        driverslicensenumber: transport.driver?.driverslicensenumber,
-        rank: transport.driver?.rank,
-      },
-      ticketSeller: {
-        name: transport.ticketSeller?.name,
-      },
-      operator: {
-        name: transport.operator?.name,
-      },
-      vehicle: {
-        licensePlate: transport.vehicle?.licensePlate,
-      },
-    };
-
     return NextResponse.json(
       {
         message: 'Get transport successfully',
-        data: responseData,
+        data: transport,
       },
       { status: 200 },
     );

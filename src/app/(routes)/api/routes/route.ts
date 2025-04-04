@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         departureStationId,
         arrivalStationId,
         departureTime: new Date(departureTime),
-        arrivalTime: arrivalTime ? new Date(arrivalTime) : null,
+        arrivalTime: new Date(arrivalTime),
         departureApprovedById,
         arrivalApprovedById,
         transportId: transportId,

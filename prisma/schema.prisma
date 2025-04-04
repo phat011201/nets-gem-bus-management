@@ -63,7 +63,7 @@ model Transport {
   currentStation String
   nextStation    String
   departureTime  DateTime
-  arrivalTime    DateTime?
+  arrivalTime    DateTime
   status         TransportStatus
   routes         Route[]  @relation("TransportRoutes")
 }
@@ -75,7 +75,7 @@ model Route {
   arrivalStation     Station   @relation("ArrivalStation", fields: [arrivalStationId], references: [id])
   arrivalStationId   String
   departureTime      DateTime
-  arrivalTime        DateTime?
+  arrivalTime        DateTime
   departureApprovedBy         User?     @relation("DepartureApproval", fields: [departureApprovedById], references: [id])
   departureApprovedById       String?
   arrivalApprovedBy           User?      @relation("ArrivalApproval", fields: [arrivalApprovedById], references: [id])

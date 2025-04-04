@@ -72,6 +72,7 @@ export async function GET() {
         },
       },
     });
+    
     if (transports.length === 0) {
       return new Response(
         JSON.stringify({
