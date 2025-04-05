@@ -43,46 +43,40 @@ export default function TransportsPage() {
   const [nextStation, setNextStation] = useState([]);
   const { fetchData } = useAPI();
 
-  useEffect(() => {
-    const fetchDataForDropdowns = async () => {
-      try {
-        const vehicleData = await fetchData('/api/vehicle', 'GET');
-        setVehicles(
-          vehicleData?.data.filter(
-            (vehicle: { status: string }) => vehicle.status === 'ACTIVE',
-          ),
-        );
+  const fetchDataForDropdowns = async () => {
+    try {
+      const vehicleData = await fetchData('/api/vehicle', 'GET');
+      setVehicles(
+        vehicleData?.data.filter(
+          (vehicle: { status: string }) => vehicle.status === 'ACTIVE',
+        ),
+      );
 
-        const employeeData = await fetchData('/api/employee', 'GET');
-        const drivers = employeeData?.data.filter(
-          (employee: { role: string }) => employee.role === 'DRIVER',
-        );
-        setDrivers(drivers);
+      const employeeData = await fetchData('/api/employee', 'GET');
+      const drivers = employeeData?.data.filter(
+        (employee: { role: string }) => employee.role === 'DRIVER',
+      );
+      setDrivers(drivers);
 
-        const ticketSellers = employeeData?.data.filter(
-          (employee: { role: string }) => employee.role === 'TICKET_SELLER',
-        );
-        setTicketSellers(ticketSellers);
+      const ticketSellers = employeeData?.data.filter(
+        (employee: { role: string }) => employee.role === 'TICKET_SELLER',
+      );
+      setTicketSellers(ticketSellers);
 
-        const operator = employeeData?.data.filter(
-          (employee: { role: string }) => employee.role === 'OPERATOR',
-        );
-        setOperators(operator);
+      const operator = employeeData?.data.filter(
+        (employee: { role: string }) => employee.role === 'OPERATOR',
+      );
+      setOperators(operator);
 
-        const station = await fetchData('/api/stations', 'GET');
-        setCurrentStation(station?.data);
-        setNextStation(station?.data);
-      } catch (err) {
-        console.error('Failed to fetch dropdown data', err);
-      }
-    };
-    fetchDataForDropdowns();
-  }, []);
-
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
+      const station = await fetchData('/api/stations', 'GET');
+      setCurrentStation(station?.data);
+      setNextStation(station?.data);
+    } catch (err) {
+      console.error('Failed to fetch dropdown data', err);
     }
+  };
+
+  const handleSave = async () => {
     await handleSubmit();
     closeModal();
   };
@@ -106,6 +100,10 @@ export default function TransportsPage() {
       alert('Please fill all required fields');
     }
   };
+
+  useEffect(() => {
+    fetchDataForDropdowns();
+  }, []);
   return (
     <div>
       <PageBreadcrumb pageTitle="Vận chuyển" />
